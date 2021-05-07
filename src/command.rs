@@ -10,10 +10,16 @@ fn print_prompt() {
     println!("{} >", CLI_NAME);
 }
 
+// 元指令匹配结果
+
+#[derive(PartialEq, Eq)]
+pub enum MetaCmdResEnum {
+    MetaCmdSuccess,
+    MegaCmdUnrecognized,
+}
+
 /// 运行 REPL 主体逻辑
 pub fn repl_run() -> Result<(), Error> {
-    let mut commands: HashMap<&'static str, fn()> = HashMap::new();
-    set_commands(&mut commands);
     // 从标准输入读取输入
     let mut input = String::new();
     loop {
@@ -26,25 +32,50 @@ pub fn repl_run() -> Result<(), Error> {
         }
         let input_str = clean_input(&*input);
         println!("user input is: {}", input_str);
-        if check_is_quit(input_str) {
-            println!("cli app terminate...");
-            break;
+        if input_str.starts_with('.') {
+            // build-in command
+            if check_is_quit(input_str) {
+                println!("cli app terminate...");
+                break;
+            }
+            let res = do_meta_command(input_str);
+            match res {
+                MetaCmdResEnum::MegaCmdUnrecognized => {
+                    println!("Unrecognized command: {}", input_str);
+                    continue;
+                }
+                MetaCmdResEnum::MetaCmdSuccess => {
+                    continue;
+                }
+            }
+        } else { // statement
         }
-        let handle = commands.get(input_str);
-        if handle.is_none() {
-            println!("there is no cmd to execute...");
-            continue;
-        }
-        handle.unwrap()();
     }
     Ok(())
+}
+
+// 处理内置指令
+fn do_meta_command(cmd_text: &str) -> MetaCmdResEnum {
+    if check_is_quit(cmd_text) {
+        std::process::exit(0);
+        return MetaCmdResEnum::MetaCmdSuccess;
+    }
+    let mut commands: HashMap<&'static str, fn()> = HashMap::new();
+    set_meta_commands(&mut commands);
+    let handle = commands.get(cmd_text);
+    if handle.is_none() {
+        return MetaCmdResEnum::MegaCmdUnrecognized;
+    }
+    handle.unwrap()();
+    MetaCmdResEnum::MetaCmdSuccess
 }
 
 fn clean_input(input: &str) -> &str {
     input.trim_end()
 }
 
-pub fn set_commands(cmd_map: &mut HashMap<&'static str, fn()>) {
+// 设置内置命令的处理
+pub fn set_meta_commands(cmd_map: &mut HashMap<&'static str, fn()>) {
     cmd_map.insert(".help", cmd_help);
     cmd_map.insert(".clear", cmd_clear);
     cmd_map.insert(".quit", cmd_quit);
