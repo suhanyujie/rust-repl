@@ -1,105 +1,82 @@
 extern crate clap;
 
-use clap::{App, Arg, SubCommand};
-use std::io::Error;
-use std::process::{Command, Stdio};
+use std::process::Command;
+use std::{collections::HashMap, io::Error};
 
-static cli_name: &str = "simpleREPL";
+static CLI_NAME: &str = "simpleREPL";
 
+/// 打印提示信息
 fn print_prompt() {
-    println!("{} >", cli_name);
+    println!("{} >", CLI_NAME);
 }
 
-fn display_help() {
-    println!("Welcom to {}! These are avaliable commands:", cli_name);
+/// 运行 REPL 主体逻辑
+pub fn repl_run() -> Result<(), Error> {
+    let mut commands: HashMap<&'static str, fn()> = HashMap::new();
+    set_commands(&mut commands);
+    // 从标准输入读取输入
+    let mut input = String::new();
+    loop {
+        input.clear();
+        print_prompt();
+        let res = std::io::stdin().read_line(&mut input);
+        if res.is_err() {
+            println!("{:?}", res);
+            break;
+        }
+        let input_str = clean_input(&*input);
+        println!("user input is: {}", input_str);
+        if check_is_quit(input_str) {
+            println!("cli app terminate...");
+            break;
+        }
+        let handle = commands.get(input_str);
+        if handle.is_none() {
+            println!("there is no cmd to execute...");
+            continue;
+        }
+        handle.unwrap()();
+    }
+    Ok(())
+}
+
+fn clean_input(input: &str) -> &str {
+    input.trim_end()
+}
+
+pub fn set_commands(cmd_map: &mut HashMap<&'static str, fn()>) {
+    cmd_map.insert(".help", cmd_help);
+    cmd_map.insert(".clear", cmd_clear);
+    cmd_map.insert(".quit", cmd_quit);
+}
+
+// 检查用户输入的指令是否是推出指令
+fn check_is_quit(cmd_text: &str) -> bool {
+    cmd_text == ".quit"
+}
+
+// clear 命令
+fn cmd_clear() {
+    if Command::new("clear").status().unwrap().success() {
+        println!("screen successfully cleared");
+    }
+}
+
+/// 显示帮助信息
+fn cmd_help() {
+    println!("Welcom to {}! These are avaliable commands:", CLI_NAME);
     println!(".help    - Show available commands");
     println!(".clear   - Clear the terminal screen");
-    println!(".exit    - Closes your connection to {}", cli_name);
+    println!(".quit    - Closes your connection to {}", CLI_NAME);
 }
 
-fn clear_screen() {
-    let os_stdout = std::io::stdout();
-    Command::new("clear")
-        .arg("-l")
-        .arg("-a")
-        .spawn()
-        .expect("exec clear error.");
-}
-
-pub fn repl_run() -> Result<(), Error> {
-    Ok(())
-}
-
-pub fn get_app<'a, 'b>() -> App<'a, 'b> {
-    let app = App::new("rs-repl")
-        .version("0.1.0")
-        .author("suhanyujie<suhanyujie@qq.com>")
-        .about("REPL in Rust")
-        .arg(
-            Arg::with_name("INPUT")
-                .help("Sets the input file to use")
-                .required(false)
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("v")
-                .short("v")
-                .multiple(true)
-                .help("Sets the level of verbosity"),
-        )
-        .subcommand(
-            SubCommand::with_name("note")
-                .about("some operation for note")
-                .arg(
-                    Arg::with_name("create")
-                        .takes_value(false)
-                        .help("create one note post"),
-                ),
-        );
-    // .get_matches();
-    return app;
-}
-
-pub fn handle_app(app: App) -> Result<(), clap::Error> {
-    let arg_matchs = app.get_matches();
-    if let Some(sub_m) = arg_matchs.subcommand_matches("note") {
-        if let Some(key_value_str) = sub_m.value_of("create") {
-            let value = get_param(key_value_str);
-            match value {
-                Some(val) => {
-                    eprintln!("this is create: {}", val);
-                }
-                val => {
-                    eprintln!("no run {:?}", val);
-                }
-            }
-        } else {
-            return Err(clap::Error {
-                message: "invalid param...".to_string(),
-                kind: clap::ErrorKind::InvalidValue,
-                info: Some(vec![]),
-            });
-        }
-    } else {
-    }
-    Ok(())
-}
-
-/// 用 `=` 号将字符串分割成一个键值对，并返回其中的值。
-pub fn get_param<'a>(param_str: &'a str) -> Option<&'a str> {
-    let arr: Vec<&'a str> = param_str.splitn(2, '=').collect();
-    if arr.len() == 2 {
-        return Some(arr[1]);
-    } else {
-        None
-    }
-}
+fn cmd_quit() {}
 
 mod tests {
     use super::*;
 
     #[test]
     fn test_clear_cmd() {
-        clear_screen();
+        cmd_clear();
     }
 }

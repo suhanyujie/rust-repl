@@ -1,6 +1,6 @@
 use std::fmt::format;
 
-use command::{get_app, handle_app, repl_run};
+use command::repl_run;
 
 mod command;
 
