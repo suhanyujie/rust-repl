@@ -1,8 +1,8 @@
-use std::fmt::format;
+mod command;
+mod statement;
 
 use command::repl_run;
-
-mod command;
+use std::fmt::format;
 
 fn main() {
     let res: Result<(), std::io::Error> = repl_run();

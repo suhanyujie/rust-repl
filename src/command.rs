@@ -3,6 +3,8 @@ extern crate clap;
 use std::process::Command;
 use std::{collections::HashMap, io::Error};
 
+use crate::statement::{self, Statement};
+
 static CLI_NAME: &str = "simpleREPL";
 
 /// 打印提示信息
@@ -48,7 +50,11 @@ pub fn repl_run() -> Result<(), Error> {
                     continue;
                 }
             }
-        } else { // statement
+        } else {
+            // statement
+            let mut stmt = Statement::new();
+            statement::prepare_statement(input_str, &mut stmt);
+            statement::execute_statement(&stmt);
         }
     }
     Ok(())

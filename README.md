@@ -5,3 +5,5 @@ Rust 实现的交互式解释器（Read Eval Print Loop）
 * https://desmondcheongzx.medium.com/writing-a-simple-repl-in-go-b279e6f4469a
 * https://cstack.github.io/db_tutorial/parts/part1.html
 
+## 其他优秀仓库
+* https://github.com/sigmaSd/IRust
