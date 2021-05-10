@@ -1,3 +1,4 @@
+mod btree;
 mod command;
 mod statement;
 
